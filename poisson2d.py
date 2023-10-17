@@ -96,14 +96,13 @@ class Poisson2D:
     
     def l2_error(self, u):
         """Return l2-error norm"""
-        u = self(self.N)
         h = self.h
         xij,yij = self.create_mesh(self.N)
         error = np.sqrt(h**2*np.sum((u - sp.lambdify((x, y), self.ue)(xij,yij))**2))
         return error
         #raise NotImplementedError
 
-    def convergence_rates(self, m=6):
+    def convergence_rates(self, m=5):
         """Compute convergence rates for a range of discretizations
 
         Parameters
@@ -120,7 +119,7 @@ class Poisson2D:
         """
         E = []
         h = []
-        N0 = 8
+        N0 = 7
         for m in range(m):
             u = self(N0)
             E.append(self.l2_error(u))
@@ -128,6 +127,7 @@ class Poisson2D:
             N0 *= 2
         r = [np.log(E[i-1]/E[i])/np.log(h[i-1]/h[i]) for i in range(1, m+1, 1)]
         print(r)
+        print(E)
         return r, np.array(E), np.array(h)
 
     def eval(self, x, y):
