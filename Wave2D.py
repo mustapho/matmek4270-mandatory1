@@ -60,7 +60,7 @@ class Wave2D:
         self.Unp1 = Unp1
         #raise NotImplementedError
 
-     @property
+    @property
     def dt(self):
         """Return the time step"""
         return self.cfl*self.h/self.c
