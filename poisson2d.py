@@ -33,8 +33,8 @@ class Poisson2D:
     def create_mesh(self, N):
         """Create 2D mesh and store in self.xij and self.yij"""
         self.N = N
-        self.x = self.y = np.linspace(0,self.L,self.N+1)
-        self.xij, self.yij = np.meshgrid(self.x,self.y, indexing = 'ij')
+        x = y = np.linspace(0,self.L,self.N+1)
+        self.xij, self.yij = np.meshgrid(x,y, indexing = 'ij')
         return self.xij, self.yij
 
     def D2(self):
@@ -69,9 +69,8 @@ class Poisson2D:
             A = A.tocsr()
         
         xij, yij = self.create_mesh(self.N)
-        f_array = sp.lambdify((x,y),self.f)(xij,yij).ravel()
         ue_array = sp.lambdify((x,y),self.ue)(xij,yij).ravel()
-        b = f_array
+        b = sp.lambdify((x,y),self.f)(xij,yij).ravel()
         b[bnds] = ue_array[bnds]
         return A, b
 
@@ -89,16 +88,15 @@ class Poisson2D:
         The solution as a Numpy array
 
         """
-        self.create_mesh(N)
+        self.N = N
         A, b = self.assemble()
-        self.U = sparse.linalg.spsolve(A, b.flatten()).reshape((N+1, N+1))
+        self.U = sparse.linalg.spsolve(A, b).reshape((N+1, N+1))
         return self.U
     
     def l2_error(self, u):
         """Return l2-error norm"""
-        h = self.h
         xij,yij = self.create_mesh(self.N)
-        error = np.sqrt(h**2*np.sum((u - sp.lambdify((x, y), self.ue)(xij,yij))**2))
+        error = np.sqrt(self.h**2*np.sum((u - sp.lambdify((x, y), self.ue)(xij,yij))**2))
         return error
         #raise NotImplementedError
 
@@ -169,4 +167,4 @@ def test_interpolation():
 
 if __name__ == '__main__':
     test_convergence_poisson2d()
-    test_interpolation()
+    #test_interpolation()
