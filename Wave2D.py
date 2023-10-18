@@ -53,12 +53,11 @@ class Wave2D:
         
         ue_numeric = sp.lambdify((x,y,t),self.ue(self.mx,self.my),'numpy')(xij,yij,0)
         Unm1[:] = ue_numeric
-        Un[:] = Unm1[:] + 0.5*(self.c*dt)**2*(self.D2(N) @ Unm1 + Unm1 @ self.D2(N).T)
-        
+        #Un[:] = Unm1[:] + 0.5*(self.c*dt)**2*(self.D2(N) @ Unm1 + Unm1 @ self.D2(N).T)
+        Un[:] = sp.lambdify((x,y,t),self.ue(self.mx,self.my),'numpy')(xij,yij,dt)
         self.Unm1 = Unm1
         self.Un = Un
         self.Unp1 = Unp1
-        #raise NotImplementedError
 
     @property
     def dt(self):
@@ -115,9 +114,9 @@ class Wave2D:
         self.N = N
         self.Nt = Nt
         self.cfl = cfl
-        self.c = c
         self.mx = mx
         self.my = my
+        self.c = c
         xij, yij = self.create_mesh(N)
         dt = self.dt
         D = self.D2(N)
@@ -126,27 +125,28 @@ class Wave2D:
         Un = self.Un
         Unp1 = self.Unp1
 
-    
         plotdata = {0: self.Unm1.copy()}
         if store_data == 1:
             plotdata[1] = self.Un.copy()
         for n in range(1, Nt):
-            Unp1[:] = 2*Un[:] - Unm1[:] + (c*dt)**2*(D @ Un + Un @ D.T)
+            Unp1[:] = 2*Un[:] - Unm1[:] + (self.c*dt)**2*(D @ Un + Un @ D.T)
             # Set boundary conditions
             self.apply_bcs()
             # Swap solutions
             Unm1[:] = Un
             Un[:] = Unp1
+            
             if n % store_data == 0:
                 plotdata[n] = Unm1.copy() # Unm1 is now swapped to Un
         if store_data > 0:
             return xij, yij, plotdata
         if store_data == -1:
-            #print(self.h, [self.l2_error(Unm1,(Nt-1)*dt)])
-            return (self.h, [self.l2_error(Unm1,(Nt-1)*dt)])
+            #print(self.h, [self.l2_error(Unm1,n*dt)])
+            return (self.h, [self.l2_error(Unm1,n*dt)])
+        
         #raise NotImplementedError
 
-    def convergence_rates(self, m=4, cfl=0.1, Nt=10, mx=3, my=3):
+    def convergence_rates(self, m=6, cfl=0.1, Nt=11, mx=3, my=3):
         """Compute convergence rates for a range of discretizations
 
         Parameters
@@ -177,7 +177,9 @@ class Wave2D:
             N0 *= 2
             Nt *= 2
         r = [np.log(E[i-1]/E[i])/np.log(h[i-1]/h[i]) for i in range(1, m+1, 1)]
+        #print(r)
         return r, np.array(E), np.array(h)
+
 
 class Wave2D_Neumann(Wave2D):
 
@@ -208,11 +210,10 @@ def test_convergence_wave2d_neumann():
 
 def test_exact_wave2d():
     Dsol = Wave2D()
-    Derror = Dsol.convergence_rates(m=8,cfl=1/np.sqrt(2),mx = 3,my = 3)[1]
-    #Had to use more discretization levels (m=8) on this one.
+    Derror = Dsol.convergence_rates(cfl=1/np.sqrt(2),mx = 3,my = 3)[1]
     Nsol = Wave2D_Neumann()
     Nerror = Nsol.convergence_rates(cfl=1/np.sqrt(2),mx = 3,my = 3)[1]
-    assert abs(Derror[-1] < 1e-12)
+    assert abs(Derror[-1] < 1e-12) 
     assert abs(Nerror[-1] < 1e-12)
 
 
